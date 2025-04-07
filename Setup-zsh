@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# Exit on error
+set -e
+
+echo "Starting ZSH setup..."
+
+# Function to clean existing setup
+clean_existing_setup() {
+    echo "Cleaning existing setup..."
+    
+    # Check if oh-my-zsh is installed and uninstall it
+    if [ -d "$HOME/.oh-my-zsh" ]; then
+        echo "Uninstalling existing Oh My ZSH..."
+        uninstall_oh_my_zsh || {
+            echo "Manual cleanup of Oh My ZSH..."
+            rm -rf "$HOME/.oh-my-zsh"
+        }
+    fi
+
+    # Remove existing zsh configurations
+    echo "Removing existing ZSH configurations..."
+    rm -f "$HOME/.zshrc" "$HOME/.zshrc.pre-oh-my-zsh" "$HOME/.zcompdump*"
+    rm -rf "$HOME/.zsh_history"
+}
+
+# Install ZSH if not already installed
+if ! command -v zsh &> /dev/null; then
+    echo "Installing ZSH..."
+    sudo apt-get update
+    sudo apt-get install -y zsh
+fi
+
+# Install fzf using apt
+if ! command -v fzf &> /dev/null; then
+    echo "Installing fzf..."
+    sudo apt-get install -y fzf
+fi
+
+# Clean existing setup
+clean_existing_setup
+
+# Install Oh My ZSH
+echo "Installing Oh My ZSH..."
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+
+# Install zsh-autosuggestions
+echo "Installing zsh-autosuggestions..."
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+
+# Install zsh-syntax-highlighting
+echo "Installing zsh-syntax-highlighting..."
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+
+# Install Spaceship theme
+echo "Installing Spaceship theme..."
+git clone https://github.com/spaceship-prompt/spaceship-prompt.git "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/spaceship-prompt" --depth=1
+ln -sf "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/spaceship-prompt/spaceship.zsh-theme" "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/spaceship.zsh-theme"
+
+# Create new .zshrc with desired configuration
+echo "Creating new .zshrc..."
+cat > "$HOME/.zshrc" << 'EOL'
+# Path to oh-my-zsh installation
+export ZSH="$HOME/.oh-my-zsh"
+
+# Theme configuration
+ZSH_THEME="spaceship"
+
+# Plugins
+plugins=(git docker docker-compose zsh-autosuggestions zsh-syntax-highlighting fzf zsh-interactive-cd)
+
+# Source oh-my-zsh
+source $ZSH/oh-my-zsh.sh
+
+# Spaceship Theme Configuration
+SPACESHIP_PROMPT_ORDER=(
+  user
+  dir
+  git
+  python
+  venv
+  docker
+  line_sep
+  char
+)
+
+SPACESHIP_PROMPT_ADD_NEWLINE=false
+SPACESHIP_CHAR_SYMBOL="â¯ "
+SPACESHIP_CHAR_SUFFIX=" "
+SPACESHIP_USER_SHOW=always
+SPACESHIP_PYTHON_SHOW=true
+SPACESHIP_DOCKER_SHOW=true
+EOL
+
+echo "Setup complete! Please restart your terminal or run 'exec zsh' to see the new theme."
